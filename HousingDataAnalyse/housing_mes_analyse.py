@@ -31,7 +31,7 @@ class HousingMesAnalyse:
         :return:
         """
         housing_data_handle = self.housing_data.query('housing_build_year.str.contains("年")')
-        housing_data_handle['housing_unit_price'] = housing_data_handle.housing_unit_price\
+        housing_data_handle['housing_unit_price'] = housing_data_handle.housing_unit_price \
             .str.replace(',', '').str.replace('元/平', '').astype('int32')
 
         housing_data_handle['housing_area'] = housing_data_handle.housing_area.str.replace('平米', '').astype('double')
@@ -46,17 +46,16 @@ class HousingMesAnalyse:
     def data_filter(self):
         """
         数据条件筛选
-        :return:
+        :return: dataframe
         """
-        df01 = self.date_handle()
-        # filter_df = df01.query('housing_area<110 & housing_unit_price<30000')
-        # & housing_floor <= 18 & if_elevator = "有"
-        filter_df = df01.query('housing_area<110 & housing_unit_price<30000  & housing_build_year>2005 & housing_floor <= 18 & if_elevator == "有"')
+        handle_df = self.date_handle()
+        filter_df = handle_df.query('housing_area<110 & housing_unit_price<30000  & housing_build_year>2005 & '
+                                    'housing_floor <= 18 & if_elevator == "有"')
         return filter_df
 
 
 if __name__ == '__main__':
-    df = pd.read_csv("../HousingPriceCrawl/2022-04-25链家数据.csv")
+    df = pd.read_csv("../HousingDataCrawl/2022-04-25链家数据.csv")
     pd.set_option('display.max_columns', 1000)
     housingMesAnalyse = HousingMesAnalyse(df)
     df_handle = housingMesAnalyse.data_filter()
