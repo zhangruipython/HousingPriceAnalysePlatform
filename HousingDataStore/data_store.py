@@ -7,7 +7,10 @@
 """
 import csv
 import sqlite3
+import sys
 from datetime import date
+
+sys.path.append('./')
 from HousingDataCrawl.housing_mes_spider import HousingPriceSpider
 
 
@@ -37,7 +40,8 @@ def data_store_csv(spider_data_date, spider_city_name, csv_path, csv_type="英�
             csv_writer.writerow(line)
 
 
-def data_store_sqlite(spider_data_date, spider_city_name, db_name="housing_data_db"):
+def data_store_sqlite(spider_data_date, spider_city_name, db_name="D:/MyProject/HousingPriceAnalysePlatform/sqlite_db"
+                                                                  "/housing_data_db"):
     """
     按天分表
     :param spider_data_date:
@@ -64,24 +68,30 @@ def data_store_sqlite(spider_data_date, spider_city_name, db_name="housing_data_
         sqlite_conn.rollback()
 
     # 数据插入
-    insert_sql = """INSERT INTO {table_name} (data_time,city_name,city_region,housing_estate,housing_publish_date, 
-                 before_days,housing_follower,business_area,housing_type,housing_area,housing_orientation, \
-                 housing_decoration,housing_floor,housing_build_year,housing_build_mes,housing_price, \
-                 housing_unit_price,housing_intro_url,intro,elevator_housing_ratio,housing_mes_type,if_elevator) \
-                 values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""".format(table_name=table_name)
+    # insert_sql = """INSERT INTO {table_name} (data_time,city_name,city_region,housing_estate,housing_publish_date,
+    #              before_days,housing_follower,business_area,housing_type,housing_area,housing_orientation, \
+    #              housing_decoration,housing_floor,housing_build_year,housing_build_mes,housing_price, \
+    #              housing_unit_price,housing_intro_url,intro,elevator_housing_ratio,housing_mes_type,if_elevator) \
+    #              values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""".format(table_name=table_name)
 
+    insert_sql = """INSERT INTO {table_name} values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""" \
+        .format(table_name=table_name)
     housing_price_spider = HousingPriceSpider(spider_data_date, spider_city_name)
 
     for line in housing_price_spider.start_crawl():
         row_list.append(tuple(line))
+        print("数据插入list")
         row_num += 1
         if row_num == 500:
             try:
+                print("数据预执行")
                 cur.executemany(insert_sql, row_list)
                 sqlite_conn.commit()
                 row_num = 0
                 row_list.clear()
+                print("500条数据写入数据库")
             except ConnectionError as e:
+                print(e)
                 sqlite_conn.rollback()
                 sqlite_conn.close()
                 break
@@ -91,4 +101,5 @@ def data_store_sqlite(spider_data_date, spider_city_name, db_name="housing_data_
 
 
 if __name__ == '__main__':
-    data_store_csv(str(date.today()), '南京', str(date.today()) + '链家数据.csv')
+    # data_store_csv(str(date.today()), '南京', str(date.today()) + '链家数据.csv')
+    data_store_sqlite(str(date.today().strftime("%Y%m%d")), '南京')

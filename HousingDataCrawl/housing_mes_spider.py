@@ -5,13 +5,14 @@
 @Software: PyCharm
 通过链家网爬取二手房数据
 """
-from HousingDataCrawl import city_code
+
 from lxml import etree
 from datetime import date
+from fake_useragent import UserAgent
+import settings
 import requests
 import datetime
 import time
-from fake_useragent import UserAgent
 
 
 # 简单的反爬，设置一个请求头来伪装成浏览器
@@ -66,6 +67,7 @@ class HousingPriceSpider:
 
     @staticmethod
     def handle_info(info_url):
+
         response = requests.get(url=info_url, headers=request_header())
         if response.status_code == 200:
             r = response.text
@@ -115,14 +117,15 @@ class HousingPriceSpider:
         :return:
         """
 
-        code = city_code.city_map_code[self.city_name]
-        city_regions = city_code.city_regions[self.city_name]
+        code = settings.city_map_code[self.city_name]
+        city_regions = settings.city_regions[self.city_name]
         for city_region in city_regions:
             start_url = 'https://{c_code}.lianjia.com/ershoufang/{region}'.format(
                 c_code=code, region=city_region)
             for i in range(1, 50):
                 time.sleep(20)
                 url = start_url + '/pg' + str(i)
+                print(url)
                 response = requests.get(url)
                 if response.status_code == 200:
                     response_result = response.text
@@ -184,7 +187,10 @@ class HousingPriceSpider:
                         if len(housing_publish_mes) > 0:
                             housing_publish = housing_publish_mes[0].strip()
                             before_days = self.parse_publish_date(housing_publish)  # 已经发布天数
-                            housing_publish_date = date.today() + datetime.timedelta(days=before_days * -1)  # 发布日期
+                            if before_days is None:
+                                housing_publish_date = '没有该信息'
+                            else:
+                                housing_publish_date = date.today() + datetime.timedelta(days=before_days * -1)  # 发布日期
                             housing_follower = housing_publish.split('/')[0].strip()  # 关注人数
                         else:
                             before_days = '没有该信息'
@@ -223,7 +229,7 @@ class HousingPriceSpider:
                               housing_unit_price, housing_intro_url, intro, elevator_housing_ratio,
                               housing_mes_type,
                               if_elevator)
-                        data_row = [date.today(), self.city_name, city_code.city_map_regions[city_region],
+                        data_row = [date.today(), self.city_name, settings.city_map_regions[city_region],
                                     housing_estate, housing_publish_date,
                                     before_days, housing_follower,
                                     business_area, housing_type, housing_area,
@@ -235,4 +241,7 @@ class HousingPriceSpider:
                                     if_elevator]
                         yield data_row
 
-
+# if __name__ == '__main__':
+#     housing_price_spider = HousingPriceSpider(str(date.today()), '南京')
+#     for a in housing_price_spider.start_crawl():
+#         print(a)
