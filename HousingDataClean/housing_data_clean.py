@@ -9,20 +9,23 @@ import pandas as pd
 import sqlite3
 from datetime import date
 
+import settings
+
 
 class HousingMesClean:
-    def __init__(self, housing_data: pd.DataFrame):
+    def __init__(self, data_time,housing_data: pd.DataFrame):
         """
         :param housing_data: 链家二手房数据
         """
+        self.data_time = data_time
         self.housing_data = housing_data
-        self.housing_price_limit = 30000  # 单价低于3万元
-        self.housing_area_limit = 110  # 面积低于110平米
+        self.housing_price_limit = 35000  # 单价低于3.5万元
+        self.housing_area_limit = 110  # 面积低于100平米
         self.housing_region_limit = ['鼓楼', '建邺', '秦淮', '玄武', '雨花台', '栖霞', '江宁']  # 区域限制
         self.housing_building_year_limit = 2005  # 建筑年份为05年之后
         self.housing_floor_limit = 18  # 楼层高度低于18层
         self.if_elevator_limit = '"有"'  # 有电梯
-        self.db_path = "D:/MyProject/HousingPriceAnalysePlatform/sqlite_db/housing_data_db"
+        self.db_path = settings.db_path
 
     def date_handle(self):
         """
@@ -47,6 +50,17 @@ class HousingMesClean:
 
         housing_data_handle['housing_floor'] = housing_data_handle.housing_floor.str.extract('(\d+)').astype(
             'int32')
+        # 将结果写入sqlite数据库
+        sqlite_conn = sqlite3.connect(self.db_path)
+        table_name = "lian_jia_handle_data_{time}_tb".format(time=self.data_time)
+        try:
+            housing_data_handle.to_sql(table_name, sqlite_conn, if_exists="replace")
+            print(f"将结果写入{table_name}")
+            sqlite_conn.close()
+        except ConnectionError as e:
+            print(e)
+            sqlite_conn.rollback()
+            sqlite_conn.close()
         return housing_data_handle
 
     def data_filter(self):
@@ -68,7 +82,7 @@ class HousingMesClean:
 
         # 将结果写入sqlite数据库
         sqlite_conn = sqlite3.connect(self.db_path)
-        table_name = "lian_jia_filter_data_{time}_tb".format(time=str(date.today().strftime("%Y%m%d")))
+        table_name = "lian_jia_filter_data_{time}_tb".format(time=self.data_time)
         try:
             filter_df.to_sql(table_name, sqlite_conn, if_exists="replace")
             print(f"将结果写入{table_name}")
@@ -81,12 +95,12 @@ class HousingMesClean:
 
 
 if __name__ == '__main__':
-    df = pd.read_csv("../HousingDataStore/2022-04-26链家数据.csv")
+    df = pd.read_csv("../2022-05-01链家数据.csv")
     pd.set_option('display.max_columns', 1000)
     housingMesClean = HousingMesClean(housing_data=df)
     df_handle = housingMesClean.date_handle()
-    df_handle.to_csv("../HousingDataStore/2022-04-26处理过链家数据.csv")
+    df_handle.to_csv("../csv_store/2022-05-01处理过链家数据.csv")
     df_handle = housingMesClean.data_filter()
-    df_handle.to_csv("../HousingDataStore/2022-04-26目标链家数据.csv")
+    df_handle.to_csv("../csv_store/2022-05-01目标链家数据.csv")
 
 
