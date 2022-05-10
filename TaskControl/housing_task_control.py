@@ -1,18 +1,19 @@
 import schedule
 
-import settings
-
 """
 基于schedule实现任务调度
 """
 import sys
+
 sys.path.append('./')
+
 from HousingDataStore import data_store
 from HousingDataClean.housing_data_clean import HousingMesClean
 from HousingDataAnalyse.house_data_analyse import HouseDataAnalyse
 import pandas as pd
 import datetime
 import sqlite3
+import settings
 
 
 def housing_data_crawl_job():
@@ -31,9 +32,9 @@ def housing_data_clean_job():
     pd.set_option('display.max_rows', 10)  # 打印最大行数
     pd.set_option('display.max_columns', 10)  # 打印最大列数
     df_handle: pd.DataFrame = housing_mes_clean.date_handle()
-    print(df_handle)
+    print(df_handle["housing_price"])
     df_filter: pd.DataFrame = housing_mes_clean.data_filter()
-    print(df_filter)
+    print(df_filter["housing_price"])
     sqlite_conn.close()
 
 
@@ -52,6 +53,6 @@ def housing_data_analyse_job():
 
 
 if __name__ == '__main__':
-    schedule.every().day.at("20:30").do(housing_data_crawl_job())
-    schedule.every().day.at("2:30").do(housing_data_clean_job())
-    schedule.every().day.at("4:30").do(housing_data_analyse_job())
+    schedule.every().day.at("21:30").do(housing_data_crawl_job())
+    schedule.every().day.at("6:30").do(housing_data_clean_job())
+    schedule.every().day.at("7:30").do(housing_data_analyse_job())

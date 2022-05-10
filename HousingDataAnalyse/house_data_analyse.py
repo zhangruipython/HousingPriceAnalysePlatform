@@ -2,7 +2,7 @@ import pathlib
 
 import pandas as pd
 import sqlite3
-
+import numpy as np
 from openpyxl.styles import Font
 from pyecharts.charts import Bar, Line, Tab, Grid, Page, Pie
 import pyecharts.options as opts
@@ -97,14 +97,82 @@ class HouseDataAnalyse:
         # with sqlite3.connect(self.db_path) as conn:
         #     c = conn.cursor()
         #     df = pd.read_sql(read_sql, con=c)
-        """
-        目标数据分析
-        1、计算城市平均房价
-        2、计算每个区的房价平均值，方差，平均差
-        3、计算每个区在售房源
-        :return:
-        """
-        return self.data_analyse(self.target_df)
+        # 计算房源得分
+        target_df = self.target_df
+        target_df["city_region_score"] = target_df["city_region"].apply(
+            lambda key: settings.model_score.get("city_region").get(key))
+        target_df["housing_follower_num"] = target_df.housing_follower.str.extract('(\\d+)').astype('int32')
+        target_df["housing_follower_score"] = np.select(
+            [
+                target_df["housing_follower_num"].between(0, 10, inclusive="left"),
+                target_df["housing_follower_num"].between(10, 20, inclusive="left"),
+                target_df["housing_follower_num"].between(20, 30, inclusive="left"),
+                target_df["housing_follower_num"].between(30, 50, inclusive="left"),
+                target_df["housing_follower_num"].between(50, 10000000, inclusive="left")
+            ],
+            [
+                60, 70, 80, 90, 100
+            ], 0
+        )
+        target_df["housing_area_score"] = np.select(
+            [
+                target_df["housing_area"].between(80, 85, inclusive="left"),
+                target_df["housing_area"].between(85, 90, inclusive="left"),
+                target_df["housing_area"].between(90, 95, inclusive="left"),
+                target_df["housing_area"].between(95, 100, inclusive="left"),
+                target_df["housing_area"].between(100, 110, inclusive="left")
+            ],
+            [
+                60, 70, 80, 90, 100
+            ], 0
+        )
+        target_df["housing_build_year_score"] = np.select(
+            [
+                target_df["housing_build_year"].between(2005, 2008, inclusive="left"),
+                target_df["housing_build_year"].between(2008, 2010, inclusive="left"),
+                target_df["housing_build_year"].between(2010, 2015, inclusive="left"),
+                target_df["housing_build_year"].between(2015, 2018, inclusive="left"),
+                target_df["housing_build_year"].between(2010, 99999, inclusive="left")
+            ],
+            [
+                60, 70, 80, 90, 100
+            ], 0
+        )
+        target_df["housing_price_score"] = np.select(
+            [
+                target_df["housing_price"].between(320, 99999, inclusive="left"),
+                target_df["housing_price"].between(300, 320, inclusive="left"),
+                target_df["housing_price"].between(0, 300, inclusive="left")
+            ],
+            [
+                90, 95, 100
+            ], 0
+        )
+        target_df["metro_intro_score"] = np.select(
+            [
+                target_df["intro"].__contains__("地铁")
+            ],
+            [
+                100
+            ],
+            60
+        )
+        target_df["housing_mes_type_score"] = np.select(
+            [
+                target_df["housing_mes_type"].__contains__("商品房")
+            ],
+            [
+                100
+            ],
+            60
+        )
+        compute_fun = ""
+        for x in settings.model_weight:
+            a = x + "*" + str(settings.model_weight[x]) + " "
+            compute_fun += a
+        compute_fun = "model_score=" + compute_fun.rstrip().replace(" ", "+")
+        target_df.eval(compute_fun, inplace=True)
+        return target_df, self.data_analyse(self.target_df)
 
     def global_df_visual(self):
         """
@@ -159,9 +227,9 @@ class HouseDataAnalyse:
         目标数据可视化
         :return:
         """
-        all_list, region_name_list, region_housing_num_list, region_housing_max_list, region_housing_min_list, \
-        region_housing_avg_list, region_housing_median_list, region_housing_std_list, \
-        region_housing_var_list = self.target_df_analyse()
+        target_df, (all_list, region_name_list, region_housing_num_list, region_housing_max_list,
+                    region_housing_min_list, region_housing_avg_list, region_housing_median_list,
+                    region_housing_std_list, region_housing_var_list) = self.target_df_analyse()
         # 各区域二手房数量
         housing_num_bar = (
             Bar(init_opts=opts.InitOpts(theme=ThemeType.ROMA, )).add_xaxis(region_name_list)
@@ -192,7 +260,7 @@ class HouseDataAnalyse:
         city_housing_num = sum(region_housing_num_list)
         return (self.picture_path + "{data_date}_target_housing_num_bar.png".format(
             data_date=self.data_date), self.picture_path + "{data_date}_target_housing_agg_bar.png".format(
-            data_date=self.data_date), city_mean_price, city_housing_num)
+            data_date=self.data_date), city_mean_price, city_housing_num, target_df)
 
     def create_report(self):
         """
@@ -233,7 +301,7 @@ class HouseDataAnalyse:
         target_ws['A1'].font = title_font
         target_ws['A2'].font, target_ws['B2'].font = text_font, text_font
         target_ws['A1'] = '南京符合要求房价分析'
-        target_housing_num_bar_path, target_housing_agg_bar_path, city_mean_price, city_housing_num = \
+        target_housing_num_bar_path, target_housing_agg_bar_path, city_mean_price, city_housing_num, target_df = \
             self.target_df_visual()
         target_housing_num_bar_img = Image(target_housing_num_bar_path)
         target_housing_agg_bar_img = Image(target_housing_agg_bar_path)
@@ -253,9 +321,15 @@ class HouseDataAnalyse:
         book = load_workbook(report_excel_path)
         writer = pd.ExcelWriter(report_excel_path, engine='openpyxl')
         writer.book = book
-        target_df = self.target_df
-        target_df.rename(columns=settings.column_dict, inplace=True)
-        target_df.to_excel(excel_writer=writer, sheet_name='南京符合要求数据', index=False)
+        top_all_df = target_df.drop(["city_region_score", "housing_follower_num", "housing_follower_score",
+                                     "housing_area_score", "housing_build_year_score", "housing_price_score",
+                                     "metro_intro_score", "housing_mes_type_score"], axis=1)
+        top_50_df = top_all_df.sort_values(by=["model_score"], ascending=False).head(50)
+        top_all_df.rename(columns=settings.column_dict, inplace=True)
+        top_50_df.rename(columns=settings.column_dict, inplace=True)
+
+        top_50_df.to_excel(excel_writer=writer, sheet_name='重点关注对象', index=False)
+        top_all_df.to_excel(excel_writer=writer, sheet_name='南京符合要求数据', index=False)
         writer.save()
         writer.close()
 
@@ -263,5 +337,5 @@ class HouseDataAnalyse:
 if __name__ == '__main__':
     df01 = pd.read_csv("../csv_store/2022-05-01处理过链家数据.csv")
     df02 = pd.read_csv("../csv_store/2022-05-01目标链家数据.csv")
-    houseDataAnalyse = HouseDataAnalyse(global_df=df01, target_df=df02, data_date='2022-05-03')
+    houseDataAnalyse = HouseDataAnalyse(global_df=df01, target_df=df02, data_date='2022-05-01')
     houseDataAnalyse.create_report()

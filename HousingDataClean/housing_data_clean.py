@@ -7,24 +7,23 @@
 """
 import pandas as pd
 import sqlite3
-from datetime import date
-
 import settings
 
 
 class HousingMesClean:
-    def __init__(self, data_time,housing_data: pd.DataFrame):
+    def __init__(self, data_time, housing_data: pd.DataFrame):
         """
         :param housing_data: 链家二手房数据
         """
         self.data_time = data_time
         self.housing_data = housing_data
-        self.housing_price_limit = 35000  # 单价低于3.5万元
-        self.housing_area_limit = 110  # 面积低于100平米
-        self.housing_region_limit = ['鼓楼', '建邺', '秦淮', '玄武', '雨花台', '栖霞', '江宁']  # 区域限制
-        self.housing_building_year_limit = 2005  # 建筑年份为05年之后
-        self.housing_floor_limit = 18  # 楼层高度低于18层
-        self.if_elevator_limit = '"有"'  # 有电梯
+        self.housing_price_limit = settings.housing_price_limit
+        self.housing_area_max_limit = settings.housing_area_max_limit
+        self.housing_area_min_limit = settings.housing_area_min_limit
+        self.housing_region_limit = settings.housing_region_limit
+        self.housing_building_year_limit = settings.housing_building_year_limit
+        self.housing_floor_limit = settings.housing_floor_limit
+        self.if_elevator_limit = settings.if_elevator_limit
         self.db_path = settings.db_path
 
     def date_handle(self):
@@ -48,8 +47,9 @@ class HousingMesClean:
         housing_data_handle['housing_build_year'] = housing_data_handle.housing_build_year.str.replace('年建', '') \
             .astype('int32')
 
-        housing_data_handle['housing_floor'] = housing_data_handle.housing_floor.str.extract('(\d+)').astype(
+        housing_data_handle['housing_floor'] = housing_data_handle.housing_floor.str.extract('(\\d+)').astype(
             'int32')
+        housing_data_handle['housing_price'] = housing_data_handle['housing_price'].astype('float64')
         # 将结果写入sqlite数据库
         sqlite_conn = sqlite3.connect(self.db_path)
         table_name = "lian_jia_handle_data_{time}_tb".format(time=self.data_time)
@@ -71,12 +71,16 @@ class HousingMesClean:
         """
 
         handle_df = self.date_handle()
-        filter_condition = 'housing_area<{housing_area_limit} & housing_unit_price<{housing_price_limit}  ' \
+        filter_condition = 'housing_area<{housing_area_max_limit} & housing_area>{housing_area_min_limit} ' \
+                           '& housing_unit_price<{housing_price_limit}  ' \
                            '& housing_build_year>{housing_building_year_limit} ' \
                            '& housing_floor <= {housing_floor_limit} & if_elevator == {if_elevator_limit}' \
-            .format(housing_area_limit=self.housing_area_limit, housing_price_limit=self.housing_price_limit,
+                           '& city_region in {housing_region_limit}' \
+            .format(housing_area_max_limit=self.housing_area_max_limit,
+                    housing_area_min_limit=self.housing_area_min_limit, housing_price_limit=self.housing_price_limit,
                     housing_building_year_limit=self.housing_building_year_limit,
-                    housing_floor_limit=self.housing_floor_limit, if_elevator_limit=self.if_elevator_limit)
+                    housing_floor_limit=self.housing_floor_limit, if_elevator_limit=self.if_elevator_limit,
+                    housing_region_limit=self.housing_region_limit)
         filter_df = handle_df.query(filter_condition)
         # 通过MD5算法生成唯一ID
 
@@ -97,10 +101,8 @@ class HousingMesClean:
 if __name__ == '__main__':
     df = pd.read_csv("../2022-05-01链家数据.csv")
     pd.set_option('display.max_columns', 1000)
-    housingMesClean = HousingMesClean(housing_data=df)
+    housingMesClean = HousingMesClean("2022-05-01", housing_data=df)
     df_handle = housingMesClean.date_handle()
     df_handle.to_csv("../csv_store/2022-05-01处理过链家数据.csv")
-    df_handle = housingMesClean.data_filter()
-    df_handle.to_csv("../csv_store/2022-05-01目标链家数据.csv")
-
-
+    df_filter = housingMesClean.data_filter()
+    df_filter.to_csv("../csv_store/2022-05-01目标链家数据.csv")
