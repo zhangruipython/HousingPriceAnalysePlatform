@@ -14,6 +14,11 @@ import requests
 import datetime
 import time
 
+import http.client
+
+http.client.HTTPConnection._http_vsn = 10
+http.client.HTTPConnection._http_vsn_str = 'HTTP/1.0'
+
 
 # 简单的反爬，设置一个请求头来伪装成浏览器
 def request_header():
