@@ -9,15 +9,10 @@
 from lxml import etree
 from datetime import date
 from fake_useragent import UserAgent
+from HousingDataCrawl.util.requests_reinforce import request_with_retry
 import settings
-import requests
 import datetime
 import time
-
-import http.client
-
-http.client.HTTPConnection._http_vsn = 10
-http.client.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
 
 # 简单的反爬，设置一个请求头来伪装成浏览器
@@ -38,20 +33,6 @@ class HousingPriceSpider:
         """
         self.data_time = data_time
         self.city_name = city_name
-        # self.csv_header = ["数据收集日期", "城市名称", "所属区域", "小区名称", "房源信息发布日期", "房源已经发布天数", "房源当前关注人数", "小区商圈",
-        #                    "户型", "面积", "朝向", "装修情况", "楼层情况", "建筑年份",
-        #                    "建筑结构", "房屋总价信息", "房屋单价", "房屋具体信息网页链接", "房屋卖点", "梯户比例", "房屋属性(商品房还是住宅房)", "是否有电梯"]
-
-        self.csv_header = ["data_time", "city_name", "city_region",
-                           "housing_estate", "housing_publish_date",
-                           "before_days", "housing_follower",
-                           "business_area", "housing_type", "housing_area",
-                           "housing_orientation",
-                           "housing_decoration", "housing_floor", "housing_build_year", "housing_build_mes",
-                           "housing_price",
-                           "housing_unit_price", "housing_intro_url", "intro", "elevator_housing_ratio",
-                           "housing_mes_type",
-                           "if_elevator"]
 
     @staticmethod
     def parse_publish_date(publish_mes):
@@ -72,8 +53,9 @@ class HousingPriceSpider:
 
     @staticmethod
     def handle_info(info_url):
-
-        response = requests.get(url=info_url, headers=request_header())
+        request_params = {"method": "get", "url": info_url}
+        response = request_with_retry(**request_params)
+        # response = requests.get(url=info_url, headers=request_header())
         if response.status_code == 200:
             r = response.text
             s = etree.HTML(r)
@@ -131,7 +113,9 @@ class HousingPriceSpider:
                 time.sleep(20)
                 url = start_url + '/pg' + str(i)
                 print(url)
-                response = requests.get(url)
+                request_params = {"method": "get", "url": url}
+                response = request_with_retry(**request_params)
+                # response = requests.get(url)
                 if response.status_code == 200:
                     response_result = response.text
                     s = etree.HTML(response_result)

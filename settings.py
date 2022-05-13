@@ -31,7 +31,19 @@ column_dict = {"data_time": "数据收集日期",
                "housing_mes_type": "房屋属性(商品房还是住宅房)",
                "if_elevator": "是否有电梯",
                "model_score": "综合得分"}
-
+csv_header_en = ["data_time", "city_name", "city_region",
+                 "housing_estate", "housing_publish_date",
+                 "before_days", "housing_follower",
+                 "business_area", "housing_type", "housing_area",
+                 "housing_orientation",
+                 "housing_decoration", "housing_floor", "housing_build_year", "housing_build_mes",
+                 "housing_price",
+                 "housing_unit_price", "housing_intro_url", "intro", "elevator_housing_ratio",
+                 "housing_mes_type",
+                 "if_elevator"]
+csv_header_zh = ["数据收集日期", "城市名称", "所属区域", "小区名称", "房源信息发布日期", "房源已经发布天数", "房源当前关注人数", "小区商圈",
+                 "户型", "面积", "朝向", "装修情况", "楼层情况", "建筑年份",
+                 "建筑结构", "房屋总价信息", "房屋单价", "房屋具体信息网页链接", "房屋卖点", "梯户比例", "房屋属性(商品房还是住宅房)", "是否有电梯"]
 # 数据筛选条件
 housing_price_limit = 35000  # 单价低于3.5万元
 housing_area_max_limit = 110  # 面积低于100平米 大于80平米

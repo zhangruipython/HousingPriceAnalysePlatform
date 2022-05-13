@@ -9,25 +9,14 @@ import csv
 import sqlite3
 import sys
 from datetime import date
-
 sys.path.append('./')
+import settings
 from HousingDataCrawl.housing_mes_spider import HousingPriceSpider
 
 
 def data_store_csv(spider_data_date, spider_city_name, csv_path, csv_type="英文"):
-    csv_header_en = ["data_time", "city_name", "city_region",
-                     "housing_estate", "housing_publish_date",
-                     "before_days", "housing_follower",
-                     "business_area", "housing_type", "housing_area",
-                     "housing_orientation",
-                     "housing_decoration", "housing_floor", "housing_build_year", "housing_build_mes",
-                     "housing_price",
-                     "housing_unit_price", "housing_intro_url", "intro", "elevator_housing_ratio",
-                     "housing_mes_type",
-                     "if_elevator"]
-    csv_header_zh = ["数据收集日期", "城市名称", "所属区域", "小区名称", "房源信息发布日期", "房源已经发布天数", "房源当前关注人数", "小区商圈",
-                     "户型", "面积", "朝向", "装修情况", "楼层情况", "建筑年份",
-                     "建筑结构", "房屋总价信息", "房屋单价", "房屋具体信息网页链接", "房屋卖点", "梯户比例", "房屋属性(商品房还是住宅房)", "是否有电梯"]
+    csv_header_en = settings.csv_header_en
+    csv_header_zh = settings.csv_header_zh
     if csv_type == "英文":
         csv_header = csv_header_en
     else:
@@ -40,8 +29,7 @@ def data_store_csv(spider_data_date, spider_city_name, csv_path, csv_type="英�
             csv_writer.writerow(line)
 
 
-def data_store_sqlite(spider_data_date, spider_city_name, db_name="D:/MyProject/HousingPriceAnalysePlatform/sqlite_db"
-                                                                  "/housing_data_db"):
+def data_store_sqlite(spider_data_date, spider_city_name, db_name=settings.db_path):
     """
     按天分表
     :param spider_data_date:
