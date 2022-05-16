@@ -332,6 +332,7 @@ class HouseDataAnalyse:
         top_all_df.to_excel(excel_writer=writer, sheet_name='南京符合要求数据', index=False)
         writer.save()
         writer.close()
+        print(report_excel_path+"已经产出")
 
 
 if __name__ == '__main__':

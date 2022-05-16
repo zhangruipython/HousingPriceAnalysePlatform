@@ -35,7 +35,7 @@ BACKOFF_RETRY_ON_EXCEPTION_PARAMS = {
     # HTTPError code list: https://github.com/psf/requests/blob/master/requests/models.py#L943
     "exception": (HTTPError,),
     "max_tries": 4,
-    "max_time": 50,  # nginx closes a session at 60' second by default
+    "max_time": 60,  # nginx closes a session at 60' second by default
     "giveup": fatal_code,
 }
 
@@ -62,8 +62,8 @@ def request_with_retry(
     response.raise_for_status()
     return response
 
-
-if __name__ == '__main__':
-    request_params_test = {"method": "get", "url": "https://njdadadada.lianjia.com/"}
-    response_test = request_with_retry(**request_params_test)
-    print(response_test.status_code)
+#
+# if __name__ == '__main__':
+#     request_params_test = {"method": "get", "url": "https://nj.lianjia.com/", "timeout": 5}
+#     response_test = request_with_retry(**request_params_test)
+#     print(response_test.status_code)

@@ -5,7 +5,7 @@
 @Software: PyCharm
 通过链家网爬取二手房数据
 """
-
+import requests
 from lxml import etree
 from datetime import date
 from fake_useragent import UserAgent
@@ -53,10 +53,12 @@ class HousingPriceSpider:
 
     @staticmethod
     def handle_info(info_url):
-        request_params = {"method": "get", "url": info_url}
-        response = request_with_retry(**request_params)
-        # response = requests.get(url=info_url, headers=request_header())
-        if response.status_code == 200:
+        request_params = {"method": "get", "url": info_url, "timeout": 10}
+        try:
+            response = request_with_retry(**request_params)
+            # response = requests.get(url=info_url, headers=request_header())
+            # if response.status_code == 200:
+
             r = response.text
             s = etree.HTML(r)
             intros = s.xpath('/html/body/div[3]/div/div/div[1]/div/text()')  # 房屋特色介绍
@@ -81,7 +83,8 @@ class HousingPriceSpider:
             else:
                 if_elevator = '没有该信息'
             return intro, elevator_housing_ratio, housing_type, if_elevator
-        else:
+        except requests.exceptions.RequestException as e:
+            print("出现异常" + str(e))
             return '没有该信息', '没有该信息', '没有该信息', '没有该信息'
 
     @staticmethod
@@ -110,13 +113,15 @@ class HousingPriceSpider:
             start_url = 'https://{c_code}.lianjia.com/ershoufang/{region}'.format(
                 c_code=code, region=city_region)
             for i in range(1, 50):
-                time.sleep(20)
+                # time.sleep(5)
                 url = start_url + '/pg' + str(i)
                 print(url)
-                request_params = {"method": "get", "url": url}
-                response = request_with_retry(**request_params)
+                request_params = {"method": "get", "url": url, "timeout": 10}
+                # response = request_with_retry(**request_params)
                 # response = requests.get(url)
-                if response.status_code == 200:
+                # if response.status_code == 200:
+                try:
+                    response = request_with_retry(**request_params)
                     response_result = response.text
                     s = etree.HTML(response_result)
                     # 一页有30套房源
@@ -229,6 +234,9 @@ class HousingPriceSpider:
                                     housing_mes_type,
                                     if_elevator]
                         yield data_row
+                except requests.exceptions.RequestException as e:
+                    print(str(e))
+
 
 # if __name__ == '__main__':
 #     housing_price_spider = HousingPriceSpider(str(date.today()), '南京')

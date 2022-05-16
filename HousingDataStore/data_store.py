@@ -9,6 +9,7 @@ import csv
 import sqlite3
 import sys
 from datetime import date
+
 sys.path.append('./')
 import settings
 from HousingDataCrawl.housing_mes_spider import HousingPriceSpider
@@ -55,13 +56,6 @@ def data_store_sqlite(spider_data_date, spider_city_name, db_name=settings.db_pa
     except ConnectionError as e:
         sqlite_conn.rollback()
 
-    # 数据插入
-    # insert_sql = """INSERT INTO {table_name} (data_time,city_name,city_region,housing_estate,housing_publish_date,
-    #              before_days,housing_follower,business_area,housing_type,housing_area,housing_orientation, \
-    #              housing_decoration,housing_floor,housing_build_year,housing_build_mes,housing_price, \
-    #              housing_unit_price,housing_intro_url,intro,elevator_housing_ratio,housing_mes_type,if_elevator) \
-    #              values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""".format(table_name=table_name)
-
     insert_sql = """INSERT INTO {table_name} values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);""" \
         .format(table_name=table_name)
     housing_price_spider = HousingPriceSpider(spider_data_date, spider_city_name)
@@ -70,7 +64,7 @@ def data_store_sqlite(spider_data_date, spider_city_name, db_name=settings.db_pa
         row_list.append(tuple(line))
         print("数据插入list")
         row_num += 1
-        if row_num == 500:
+        if row_num == 50:
             try:
                 print("数据预执行")
                 cur.executemany(insert_sql, row_list)
